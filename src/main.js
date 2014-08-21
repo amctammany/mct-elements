@@ -6,8 +6,8 @@ var ctx = canvas.getContext('2d');
 
 var rand = rng();
 
-var rows = 10,
-    cols = 10,
+var rows = 20,
+    cols = 20,
     cells = [];
 
 var maxIndex = rows * cols;
@@ -36,9 +36,12 @@ function getIndexFromMouse (x, y) {
   return getIndex(row, col);
 }
 
+var selectedBody = undefined;
+
 canvas.onmousedown = function (e) {
   var index = getIndexFromMouse(e.offsetX, e.offsetY);
-  console.log(cells[index]);
+  var cell = cells[index];
+  console.log(cell);
 };
 function getRow(index) {
   return Math.floor(index/cols);
@@ -57,7 +60,7 @@ function getRowAndCol(index) {
 var elements = ['air', 'earth', 'water', 'fire'];
 var elementMix = {
   'air': {
-    'earth': 'air',
+    'earth': 'earth',
     'fire': 'fire',
     'water': 'water',
     'air': 'air',
@@ -71,14 +74,14 @@ var elementMix = {
   'earth': {
     'earth': 'earth',
     'fire': 'fire',
-    'water': 'air',
-    'air': 'fire',
+    'water': 'water',
+    'air': 'air',
   },
   'water': {
     'earth': 'earth',
-    'fire': 'fire',
-    'water': 'air',
-    'air': 'fire',
+    'fire': 'air',
+    'water': 'water',
+    'air': 'water',
   },
 };
 
@@ -104,10 +107,9 @@ var Body = function (type, index, element, direction) {
 
 var Stream = function (source, element, direction) {
   this.source = source;
+  this.type = 'stream';
   this.element = element || source.element;
-  console.log(typeof direction)
   this.direction =  typeof direction === 'number' ? direction : source.direction;
-  console.log(this.direction);
   this.current = this.source.index;
   this.path = [source.index];
   this.state = false;
@@ -121,25 +123,25 @@ Stream.prototype = {
     if (row < 0 || row === rows || col === 0 || col === cols - 0) {
       this.state = true;
       cells[this.current] = undefined;
-      console.log('out of bounds')
       return false;
     } else {
 
       this.path.push(this.current);
       this.current = shiftIndex(this.current, this.direction);
       var cell = cells[this.current];
-      if (cell) {
+      if (cell && (cell instanceof Body || cell instanceof Stream)) {
         this.state = true;
-        if (cell instanceof Stream) {
-          cell.cull(this.current);
-        }
-        console.log('collision at ' + this.current);
+        //if (cell instanceof Stream) {
+          //cell.cull(this.current);
+        //}
         cells[this.current] = new Collision(this.current, cell, this);
         return;
+      } else {
+        cells[this.current] = this;
+        //console.log(cells);
+        return this.propagate();
+
       }
-      cells[this.current] = this;
-      //console.log(cells);
-      return this.propagate();
     }
 
   },
@@ -147,33 +149,44 @@ Stream.prototype = {
     var i = this.path.indexOf(index);
     var tail = this.path.slice(i);
     tail.forEach(function (j) {cells[j] = undefined;});
-    console.log(tail);
     this.path.splice(i, tail.length);
-    console.log(this.path);
   },
 };
 
 var Collision = function (index, s1, s2) {
   this.index = index;
   this.s1 = s1;
+  if (this.s1 instanceof Stream){
+    this.s1.cull(index);
+  }
+  if (this.s2 instanceof Stream){
+    this.s2.cull(index);
+  }
+
   this.s2 = s2;
   console.log(this);
   this.generateStreams();
 };
 Collision.prototype = {
   generateStreams: function () {
-    var element = elementMix[this.s1.element][this.s2.element];
-    console.log(element);
-    var s1 = new Stream(this, element, this.s1.direction);// + 2 % 4);
-    var s2 = new Stream(this, element, this.s2.direction);// + 2 % 4);
-    console.log(s1);
+    console.log(this.s1.element);
+    console.log(this.s2.element);
+    var e1 = elementMix[this.s1.element][this.s2.element];
+    var e2 = elementMix[this.s2.element][this.s1.element];
+    if (this.s1 instanceof Stream) var s1 = new Stream(this, e1, this.s1.direction);// + 2 % 4);
+    if (this.s2 instanceof Stream) var s2 = new Stream(this, e2, this.s2.direction);// + 2 % 4);
 
   },
 };
-var cannon = new Body('cannon', getIndex(3, 1), 'fire', 1);
-var stream = new Stream(cannon)
-var cannon1 = new Body('cannon', getIndex(5, 6), 'water', 0);
-var stream1 = new Stream(cannon1)
+var reflector = new Body('reflector', getIndex(10, 5), 'fire', 1);
+var source = new Body('source', getIndex(3, 1), 'fire', 1);
+var source1 = new Body('source', getIndex(1, 6), 'water', 2);
+var source2 = new Body('source', getIndex(7, 2), 'fire', 1);
+var stream = new Stream(source);
+var stream1 = new Stream(source1);
+var stream2 = new Stream(source2);
+console.log(reflector.element);
+
 
 function drawLevel (cells) {
   for (var i = 0; i < rows; i++) {
@@ -182,9 +195,16 @@ function drawLevel (cells) {
       ctx.beginPath()
       if (cell) {
         ctx.fillStyle = elementFill[cell.element] || 'white';
-        if (cell.type === 'cannon') {
+        if (cell.type === 'source') {
           ctx.arc((j + 0.5) * w + 1, (i + 0.5) * h + 1, w/3, 0, 6.28, 0);
-        } else {
+        } else if (cell.type === 'stream') {
+          if (cell.direction % 2 === 1) {
+            ctx.rect(j * w, (i + 0.5) * h, w, 3);
+          } else {
+            ctx.rect((j + 0.5) * w, i * h, 3, h);
+          }
+
+        }else {
           ctx.rect(j * w + 1, i * h + 1, w - 2, h - 2);
         }
       } else {
