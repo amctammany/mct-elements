@@ -42,7 +42,7 @@ gulp.task('default', ['build']);
 gulp.task('build', ['build_source', 'build_index', 'build_styles']);
 
 gulp.task('build_source', function() {
-  var bundler = browserify('./src/main', {debug: !prod});
+  var bundler = browserify('./src/elements', {debug: !prod});
   if (prod) {
     bundler.plugin(require('bundle-collapser/plugin'));
   }
