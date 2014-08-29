@@ -12,7 +12,8 @@ var BODY_TYPES = {
   source: 0,
   reflector: 1,
   collector: 2,
-  stream: 3
+  stream: 3,
+  collision: 4
 };
 
 var ELEMENT_TYPES = {
@@ -116,7 +117,7 @@ var _collisions = [];
 
 
 var Stream = function (source, element, direction) {
-  this.type = 4;
+  this.type = BODY_TYPES['stream'];
   this.source = source;
   this.element = element;
   this.direction = direction;
@@ -137,7 +138,6 @@ Stream.prototype = {
       //_collisions.push(collision);
       cell.collidesWith(this, this.current);
     } else if (cell instanceof Body) {
-      console.log('body collision');
       //var collision = new Collision(this.current, cell, this);
       //_collisions.push(collision);
       cell.collidesWith(this);
@@ -146,7 +146,7 @@ Stream.prototype = {
 
       selectedLevel[this.current] = this;
     }
-    if (!checkBoundaries(this.current)) { this.completed = true;}
+    if (!checkBoundaries(this.current, this.direction)) { this.completed = true;}
     this.current = shiftIndex(this.current, this.direction);
     //this.propagate();
   },
@@ -173,6 +173,7 @@ Stream.prototype = {
   },
   collidesWith: function (stream, index) {
     this.completed = true;
+    _collisions.push(new Collision(index, this, stream));
     this.cull(index);
     stream.completed = true;
     stream.cull(index);
@@ -182,17 +183,19 @@ Stream.prototype = {
 
 var Collision = function (index, c1, c2) {
   this.index = index;
+  this.type = BODY_TYPES['collision'];
   this.c1 = c1;
   this.c2 = c2;
   if (this.c1 instanceof Stream) {
-    this.c1.cull(index);
     this.l1 = this.c1.path.indexOf(this.index);
+    this.c1.cull(index);
   }
   if (this.c2 instanceof Stream) {
-    this.c2.cull(index);
     this.l2 = this.c2.path.indexOf(this.index);
+    this.c2.cull(index);
   }
-  //this.generateStreams();
+  selectedLevel[index] = this;
+  this.generateStreams();
 };
 Collision.prototype = {
   generateStreams: function () {
@@ -241,7 +244,6 @@ Body.prototype = {
           dir = (input.direction + 1) % 4;
           var s = new Stream(this, e, dir);
           streams.push(s);
-          console.log(s);
         }
           //streams.push(new Stream(self, e, dir));
         //});
@@ -264,6 +266,7 @@ Body.prototype = {
     _dirty = true;
   },
   collidesWith: function (stream) {
+    if (this.type === 0) {return;} // return if collides with source
     if (this.element === undefined) {return;}
     stream.cull(this.index);
     stream.output = this;
@@ -282,14 +285,29 @@ Body.prototype = {
   }
 };
 
-function checkBoundaries(index) {
+function checkBoundaries(index, direction) {
   if (index < 0 || index >= maxIndex) { return false; }
   var row = getRow(index);
   var col = getColumn(index);
-  if (row <= 0 || row >= rows - 1|| col <= 0 || col >= columns - 1) {
-    return false;
+  var inBounds = true;
+  switch (direction) {
+    case 0:
+      if (row === 0) {inBounds = false;}
+      break;
+    case 1:
+      if (col === columns - 1) {inBounds = false;}
+      break;
+    case 2:
+      if (row === rows - 1) {inBounds = false;}
+      break;
+    case 3:
+      if (col === 0) {inBounds = false;}
+      break;
+    default:
+      console.error('invalid direction');
+      break;
   }
-  return true;
+  return inBounds;
 }
 var _selectedLevel = {};
 function loadLevel(level){
@@ -317,6 +335,13 @@ function loadLevel(level){
   });
   return _selectedLevel;
 }
+
+function handleCollisions() {
+  while (_collisions.length > 0) {
+    collision = _collisions.pop();
+    console.log(collision);
+  }
+}
 function initStreams() {
   selectedLevel = Object.create(_selectedLevel);
   _collisions = [];
@@ -332,16 +357,18 @@ function initStreams() {
 function propagateStreams() {
   var total = streams.length;
   var t = 0;
+  if (_collisions.length > 0) {
+    handleCollisions();
+  }
   streams.forEach(function (stream) {
     if (stream.completed) {return t += 1;}
     stream.propagate();
   });
-  if (_collisions.length > 0) {
-    console.log('collisions!');
-  }
   if (t < total) {
     //console.log(streams); console.log(_collisions);
-    return propagateStreams();}
+    return propagateStreams();
+  } else {
+  }
 }
 function getIndex(row, column) {
   return row * columns + column;
@@ -363,6 +390,7 @@ function shiftIndex(index, direction) {
 function getIndexFromMouse (x, y) {
   var row = Math.floor(y / h);
   var col = Math.floor(x / w);
+  //console.log('row: ' + row + '; col: ' + col);
   return getIndex(row, col);
 }
 
@@ -407,7 +435,7 @@ function drawLevel (cells) {
 
         }
         // Stream Drawing
-        else if (cell.type === 4) {
+        else if (cell.type === 3) {
           if (cell.direction % 2 === 1) {
             ctx.rect(j * w, (i + 0.5) * h, w, 3);
           } else {
@@ -418,7 +446,7 @@ function drawLevel (cells) {
         else if (cell.type === 1) {
           ctx.save();
           ctx.beginPath();
-          ctx.translate((j + 0.5) * w, (i + 0.0) * h);
+          ctx.translate((j + 0.35) * w, (i - 0.15) * h);
           if (cell.direction % 2 === 0) {
             ctx.rotate((-Math.PI / 4) * 1);
             ctx.rect(0 - w/2, 0 + h/8, w/4, h);
@@ -429,6 +457,11 @@ function drawLevel (cells) {
           ctx.closePath();
           ctx.restore();
           ctx.fill();
+        }
+        // Collision Drawing
+        else if (cell.type === 4) {
+          ctx.fillStyle = 'red';
+          ctx.arc((j + 0.5) * w + 1, (i + 0.5) * h + 1, w/3, 0, 6.28, 0);
         }
         // Otherwise Drawing
         else {
