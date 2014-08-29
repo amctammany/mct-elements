@@ -65,14 +65,43 @@ var levels = [
       [1, 8, 3, 1],
     ],
     reflectors: [
-      [0, 5, 10, 3],
-      [2, 6, 6, 2],
+      [0, 5, 10, 1],
+      [2, 6, 6, 3],
     ],
     collectors: [
       [1, 15, 15, 0],
       [0, 18, 18, 0],
     ]
-  }
+  },
+  {
+    rows: 15,
+    columns: 15,
+    sources: [
+      [0, 3, 3, 2],
+      [2, 5, 5, 1],
+    ],
+    reflectors: [
+      [0, 10, 8, 1],
+      [2, 8, 10, 2]
+    ],
+    collectors: [
+      [0, 12, 12, 1],
+      [2, 14, 14, 2],
+    ]
+  },
+  {
+    rows: 10,
+    columns: 10,
+    sources: [
+      [0, 1, 1, 1],
+    ],
+    reflectors: [
+      [0, 1, 4, 1],
+    ],
+    collectors: [
+      [0, 4, 4, 1],
+    ],
+  },
 ];
 
 var currentLevel = {};
@@ -83,6 +112,7 @@ var collectors = [];
 
 var _bodies = [];
 var _sources = [];
+var _collisions = [];
 
 
 var Stream = function (source, element, direction) {
@@ -92,7 +122,7 @@ var Stream = function (source, element, direction) {
   this.direction = direction;
   this.path = [];
   this.completed = false;
-  this.collisions = [];
+  this.output = undefined;
   this.current = shiftIndex(this.source.index, this.direction);
   //this.propagate();
 };
@@ -100,41 +130,53 @@ var Stream = function (source, element, direction) {
 Stream.prototype = {
   propagate: function () {
     if (this.completed) { return; }
+    this.path.push(this.current);
     var cell = selectedLevel[this.current];
     if (cell instanceof Stream) {
-      this.completed = true;
-      var collision = new Collision(this.current, cell, this);
-      this.output = collision;
-      this.collisions.push(collision);
-      selectedLevel[this.current] = collision;
-      return;
+      //var collision = new Collision(this.current, cell, this);
+      //_collisions.push(collision);
+      cell.collidesWith(this, this.current);
     } else if (cell instanceof Body) {
-      this.completed = true;
-      this.output = cell;
-      this.cull(this.current);
+      console.log('body collision');
+      //var collision = new Collision(this.current, cell, this);
+      //_collisions.push(collision);
       cell.collidesWith(this);
-      return;
+
     } else {
+
       selectedLevel[this.current] = this;
-      this.path.push(this.current);
-      if (!checkBoundaries(this.current)) { this.completed = true;}
-      this.current = shiftIndex(this.current, this.direction);
-      this.propagate();
     }
+    if (!checkBoundaries(this.current)) { this.completed = true;}
+    this.current = shiftIndex(this.current, this.direction);
+    //this.propagate();
   },
   cull: function (index) {
+    if (this.output) {
+      console.log(this.output);
+      this.output.inputs.splice(this.output.inputs.indexOf(this.output));
+      this.output = undefined;
+    }
     var i = this.path.indexOf(index);
     if (i >= 0) {
       if (this.output !== undefined) {
+        console.log('remove output');
         this.output.inputs.splice(this.output.inputs.indexOf(this),1);
       }
       var tail = this.path.slice(i);
       tail.forEach(function(j) {
+        if (j === index) { return; }
         selectedLevel[j] = undefined;
 
       });
       this.path.splice(i, tail.length);
     }
+  },
+  collidesWith: function (stream, index) {
+    this.completed = true;
+    this.cull(index);
+    stream.completed = true;
+    stream.cull(index);
+
   },
 };
 
@@ -144,13 +186,13 @@ var Collision = function (index, c1, c2) {
   this.c2 = c2;
   if (this.c1 instanceof Stream) {
     this.c1.cull(index);
-    this.c1.collisions.push(this);
+    this.l1 = this.c1.path.indexOf(this.index);
   }
   if (this.c2 instanceof Stream) {
     this.c2.cull(index);
-    this.c2.collisions.push(this);
+    this.l2 = this.c2.path.indexOf(this.index);
   }
-  this.generateStreams();
+  //this.generateStreams();
 };
 Collision.prototype = {
   generateStreams: function () {
@@ -196,8 +238,9 @@ Body.prototype = {
         //this.inputs.forEach(function (input) {
         if (input) {
           e = ELEMENT_MIX[input.element][this.element];
-          dir = (this.direction + 1) % 4;
+          dir = (input.direction + 1) % 4;
           var s = new Stream(this, e, dir);
+          streams.push(s);
           console.log(s);
         }
           //streams.push(new Stream(self, e, dir));
@@ -222,6 +265,9 @@ Body.prototype = {
   },
   collidesWith: function (stream) {
     if (this.element === undefined) {return;}
+    stream.cull(this.index);
+    stream.output = this;
+    stream.completed = true;
     this.inputs.push(stream);
     var elm = (stream.element === this.element) ? this.element : ELEMENT_MIX[stream.element][this.element];
     var dir = (this.direction + 1) % 4;
@@ -240,7 +286,7 @@ function checkBoundaries(index) {
   if (index < 0 || index >= maxIndex) { return false; }
   var row = getRow(index);
   var col = getColumn(index);
-  if (row < 0 || row >= rows || col <= 0 || col >= columns - 1) {
+  if (row <= 0 || row >= rows - 1|| col <= 0 || col >= columns - 1) {
     return false;
   }
   return true;
@@ -273,23 +319,29 @@ function loadLevel(level){
 }
 function initStreams() {
   selectedLevel = Object.create(_selectedLevel);
+  _collisions = [];
   streams = [];
   _bodies.forEach(function (s) {
     if (s.type === 0) { s.status = 'ready';}
     if (s.status === 'ready') {
-      s.generateStreams.call(s);
+      s.generateStreams();
     }
   });
   propagateStreams();
 }
 function propagateStreams() {
   var total = streams.length;
-  var t = 1;
+  var t = 0;
   streams.forEach(function (stream) {
     if (stream.completed) {return t += 1;}
-    stream.propagate.call(stream);
+    stream.propagate();
   });
-  if (t < total) { return propagateStreams();}
+  if (_collisions.length > 0) {
+    console.log('collisions!');
+  }
+  if (t < total) {
+    //console.log(streams); console.log(_collisions);
+    return propagateStreams();}
 }
 function getIndex(row, column) {
   return row * columns + column;
@@ -340,7 +392,7 @@ canvas.onmouseup = function (e) {
 };
 
 
-var selectedLevel = loadLevel(levels[0]);
+var selectedLevel = loadLevel(levels[1]);
 
 function drawLevel (cells) {
   for (var i = 0; i < rows; i++) {
@@ -349,16 +401,37 @@ function drawLevel (cells) {
       ctx.beginPath();
       if (cell) {
         ctx.fillStyle = ELEMENT_FILL[cell.element] || 'white';
+        // Source Drawing
         if (cell.type === 0) {
           ctx.arc((j + 0.5) * w + 1, (i + 0.5) * h + 1, w/3, 0, 6.28, 0);
-        } else if (cell.type === 4) {
+
+        }
+        // Stream Drawing
+        else if (cell.type === 4) {
           if (cell.direction % 2 === 1) {
             ctx.rect(j * w, (i + 0.5) * h, w, 3);
           } else {
             ctx.rect((j + 0.5) * w, i * h, 3, h);
           }
-
-        }else {
+        }
+        // Reflector Drawing
+        else if (cell.type === 1) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.translate((j + 0.5) * w, (i + 0.0) * h);
+          if (cell.direction % 2 === 0) {
+            ctx.rotate((-Math.PI / 4) * 1);
+            ctx.rect(0 - w/2, 0 + h/8, w/4, h);
+          } else {
+            ctx.rotate((Math.PI / 4) * 1);
+            ctx.rect(0 + w/2, 0 - h/8, w/4, h);
+          }
+          ctx.closePath();
+          ctx.restore();
+          ctx.fill();
+        }
+        // Otherwise Drawing
+        else {
           ctx.rect(j * w + 1, i * h + 1, w - 2, h - 2);
         }
       } else {
