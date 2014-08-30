@@ -189,10 +189,12 @@ var Collision = function (index, c1, c2) {
   if (this.c1 instanceof Stream) {
     this.l1 = this.c1.path.indexOf(this.index);
     this.c1.cull(index);
+    this.c1.completed = true;
   }
   if (this.c2 instanceof Stream) {
     this.l2 = this.c2.path.indexOf(this.index);
     this.c2.cull(index);
+    this.c2.completed = true;
   }
   selectedLevel[index] = this;
   this.generateStreams();
@@ -420,7 +422,7 @@ canvas.onmouseup = function (e) {
 };
 
 
-var selectedLevel = loadLevel(levels[1]);
+var selectedLevel = loadLevel(levels[0]);
 
 function drawLevel (cells) {
   for (var i = 0; i < rows; i++) {
