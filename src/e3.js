@@ -103,7 +103,9 @@ Body.prototype = {
         //this.inputs.forEach(function (input) {
         if (input) {
           e = ELEMENT_MIX[input.element][this.element];
-          dir = (input.direction + 1) % 4;
+          var d = (this.direction % 2 === 0) ? 3 : 1;
+          console.log(d);
+          dir = (input.direction + d) % 4;
           var s = new Stream(this, e, dir);
           streams.push(s);
         }
@@ -120,6 +122,11 @@ Body.prototype = {
 
   },
   collidesWith: function (stream) {
+    stream.cull(this.index);
+    stream.output = this;
+    stream.completed = true;
+    this.inputs.push(stream);
+    this.generateStreams();
 
   },
   move: function (index) {
@@ -284,8 +291,26 @@ function checkBoundaries(index, direction) {
 
 // }
 // Indexing Functions {
-function getIndex(row, column) {
-  return row * columns + column;
+function getIndex(row, column, orientation) {
+  if (orientation === undefined) {
+    return (row * columns) + column;
+  } else {
+    var index;
+    switch (orientation) {
+      case 0:
+        index = getIndex(row, column)
+        break;
+      case 1:
+        index = getIndex(column, rows - row - 1)
+        break;
+      default:
+        index = row * columns + column;
+        break;
+
+    }
+
+  }
+  return index;
 }
 function getRow(index) {
   return Math.floor(index/columns);
@@ -310,11 +335,11 @@ function getIndexFromMouse (x, y) {
 // }
 // Drawing and Animation {
   // Draw Face {
-function drawFace (face) {
+function drawFace (face, orientation) {
   var cells = faces[face].cells;
   for (var i = 0; i < rows; i++) {
     for (var j = 0; j < columns; j++) {
-      var cell = cells[getIndex(i, j)];
+      var cell = cells[getIndex(i, j, orientation)];
       ctx.beginPath();
       if (cell) {
         ctx.fillStyle = ELEMENT_FILL[cell.element] || 'white';
@@ -412,10 +437,19 @@ canvas.onmousedown = function (e) {
 // }
 var levels = [
   {
+    rows: 7,
+    columns: 7,
+    bodies: [
+      [0, 0, 0, 3, 3, 0],
+      [1, 2, 0, 0, 3, 0],
+    ]
+  },
+  {
     rows: 15,
     columns: 15,
     bodies: [
       [0, 0, 0, 7, 7, 0],
+      [1, 0, 0, 3, 7, 0],
       [0, 1, 1, 7, 7, 1],
       [0, 2, 2, 7, 7, 2],
       [0, 3, 3, 7, 7, 3],
