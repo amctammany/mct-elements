@@ -292,25 +292,15 @@ function checkBoundaries(index, direction) {
 // }
 // Indexing Functions {
 function getIndex(row, column, orientation) {
-  if (orientation === undefined) {
+  if (orientation === undefined || orientation === 0) {
     return (row * columns) + column;
-  } else {
-    var index;
-    switch (orientation) {
-      case 0:
-        index = getIndex(row, column)
-        break;
-      case 1:
-        index = getIndex(column, rows - row - 1)
-        break;
-      default:
-        index = row * columns + column;
-        break;
-
-    }
-
+  } else if (orientation === 1) {
+    return getIndex(columns - column - 1, row);
+  } else if (orientation === 2) {
+     return getIndex(rows - row - 1, columns - column - 1);
+  } else if (orientation === 3) {
+    return getIndex(column, rows - row - 1);
   }
-  return index;
 }
 function getRow(index) {
   return Math.floor(index/columns);
@@ -421,7 +411,7 @@ raf.start(function (elapsed) {
     _dirty = false;
   }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawFace(currentFace);
+  drawFace(currentFace, 3);
   //drawCube();
 });
 // }
@@ -460,4 +450,4 @@ var levels = [
   }
 ];
 
-loadLevel(levels[0]);
+loadLevel(levels[1]);
