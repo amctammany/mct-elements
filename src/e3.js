@@ -206,6 +206,16 @@ var Face = function (id) {
 
   this.cells = {};
 };
+Face.prototype = {
+  getNeighbors: function (orientation) {
+    console.log(this.neighbors);
+    var head = this.neighbors.slice(0, orientation);
+    var tail = this.neighbors.slice(orientation);
+    console.log(head);
+    console.log(tail);
+    return tail.concat(head);
+  }
+};
 // }
 // Game Loop {
 function initStreams() {
@@ -340,7 +350,7 @@ function drawFace (face, orientation) {
         }
         // Stream Drawing
         else if (cell instanceof Stream) {
-          if (cell.direction % 2 === 1) {
+          if ((cell.direction + orientation) % 2 === 1) {
             ctx.rect(j * w, (i + 0.5) * h, w, 3);
           } else {
             ctx.rect((j + 0.5) * w, i * h, 3, h);
@@ -351,7 +361,7 @@ function drawFace (face, orientation) {
           ctx.save();
           ctx.beginPath();
           ctx.translate((j + 0.35) * w, (i - 0.15) * h);
-          if (cell.direction % 2 === 0) {
+          if ((cell.direction + orientation) % 2 === 0) {
             ctx.rotate((-Math.PI / 4) * 1);
             ctx.rect(0 - w/2, 0 + h/8, w/4, h);
           } else {
@@ -409,9 +419,10 @@ raf.start(function (elapsed) {
   if (_dirty) {
     initStreams();
     _dirty = false;
+    console.log(faces[currentFace].getNeighbors(2));
   }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawFace(currentFace, 3);
+  drawFace(currentFace, 2);
   //drawCube();
 });
 // }
