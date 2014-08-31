@@ -7,7 +7,26 @@
     <link rel="stylesheet" href="build.css"/>
   </head>
   <body>
-    <canvas id="game" width="600" height="600"></canvas>
+    <div id="game-container">
+      <div class="cube-container">
+      
+      <section class="game-cube">
+        <div class="cube">
+          <figure class="front"><img id="cube-front"></figure>
+          <figure class="back"><img id="cube-back"></figure>
+          <figure class="left"><img id="cube-left"></figure>
+          <figure class="right"><img id="cube-right"></figure>
+          <figure class="top"><img id="cube-top"></figure>
+          <figure class="bottom"><img id="cube-bottom"></figure>
+        </div>
+      </section>
+      </div>
+        
+      <div class="game-canvas">
+      
+        <canvas id="game" width="600" height="600"></canvas>
+      </div>
+    </div>
     <script src="build.js"></script>
   </body>
 </html>
