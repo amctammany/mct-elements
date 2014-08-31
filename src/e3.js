@@ -104,7 +104,6 @@ Body.prototype = {
         if (input) {
           e = ELEMENT_MIX[input.element][this.element];
           var d = (this.direction % 2 === 0) ? 3 : 1;
-          console.log(d);
           dir = (input.direction + d) % 4;
           var s = new Stream(this, e, dir);
           streams.push(s);
@@ -203,16 +202,15 @@ Collision.prototype = {
 var Face = function (id) {
   this.id = id;
   this.neighbors = ADJACENT_FACES[id];
+  this.orientation = 0;
 
   this.cells = {};
 };
 Face.prototype = {
-  getNeighbors: function (orientation) {
-    console.log(this.neighbors);
+  getNeighbors: function () {
+    var orienation = this.orientation;
     var head = this.neighbors.slice(0, orientation);
     var tail = this.neighbors.slice(orientation);
-    console.log(head);
-    console.log(tail);
     return tail.concat(head);
   }
 };
@@ -399,31 +397,74 @@ function drawFace (face, orientation) {
 
   // }
 function rotateCube(direction) {
-  var next = faces[currentFace].neighbors[direction];
+  var next = faces[currentFace].getNeighbors()[direction];
   currentFace = next;
 }
+var r = 1.5, l = -1.5, t = 1.5, b = -1.5, f = 1.5, n = 1.5;
+function cartesianToIsometric(x, y) {
+  return [
+    ((x - l) * (2 / (r - l))) - 1,
+    ((y - b) * (2 / (t - b))) - 1
+  ];
+}
+function projectOrtho(x, y, z) {
+  return [
+    ((2 / (r - l)) * (x/z)) - ((r + l)/(r - l)),
+    ((2 / (t - b)) * (y/z)) - ((t + b)/(t - b)),
+
+  ];
+}
+var cubeVertices = {
+  0: [-0.75, -0.75, 0.75],
+  1: [0.75, -0.75, 0.75],
+  2: [0.75, 0.75, 0.75],
+  3: [-0.75, 0.75, 0.75],
+  4: [-0.75, -0.75, -0.75],
+  5: [0.75, -0.75, -0.75],
+  6: [0.75, 0.75, -0.75],
+  7: [-0.75, 0.75, -0.75]
+};
 function drawCube() {
   // TOP
   ctx.save();
   ctx.fillStyle = 'red';
   ctx.translate(250, 250);
-  ctx.rotate(-Math.PI / 4);
+  ctx.scale(50, 50);
   ctx.beginPath();
-  ctx.rect(-50, -150, 200, 200);
+  ctx.moveTo.apply(ctx, projectOrtho.apply(null, cubeVertices[3]));
+  ctx.lineTo.apply(ctx, projectOrtho.apply(null, cubeVertices[2]));
+  ctx.lineTo.apply(ctx, projectOrtho.apply(null, cubeVertices[6]));
+  ctx.lineTo.apply(ctx, projectOrtho.apply(null, cubeVertices[7]));
   ctx.closePath();
   ctx.fill();
   ctx.restore();
+  for (var i = 0; i < 8; i++) {
+  console.log(projectOrtho.apply(null, cubeVertices[i]));
+  }
+  // RIGHT
+  //ctx.save();
+  //ctx.fillStyle = 'blue';
+  //ctx.translate(200, 350);
+  //ctx.rotate(Math.sqrt(2) / Math.PI )
+  //ctx.beginPath();
+  //ctx.moveTo.apply(ctx, cartesianToIsometric(-50, -50));
+  //ctx.lineTo.apply(ctx, cartesianToIsometric(50, -50));
+  //ctx.lineTo.apply(ctx, cartesianToIsometric(50, 50));
+  //ctx.lineTo.apply(ctx, cartesianToIsometric(-50, 50));
+  //ctx.closePath();
+  //ctx.fill();
+  //ctx.restore();
+
 
 }
 raf.start(function (elapsed) {
   if (_dirty) {
     initStreams();
     _dirty = false;
-    console.log(faces[currentFace].getNeighbors(2));
+    drawCube();
   }
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawFace(currentFace, 2);
-  //drawCube();
+  //ctx.clearRect(0, 0, canvas.width, canvas.height);
+  //drawFace(currentFace, 0);
 });
 // }
 // User Input {
