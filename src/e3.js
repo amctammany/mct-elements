@@ -17,36 +17,6 @@ var transfers = [];
 var faces = {};
 var $cubeContainer = document.getElementById('cube-container');
 var $cube = document.getElementById('cube');
-//var dragging = false;
-//var dragStart;
-//var prevX, prevY;
-//$cubeContainer.onmousedown = function (e) {
-  //dragging = true;
-  //dragStart = {
-    //x: e.offsetX;
-    //y: e.offsetY;
-  //}
-  //return false;
-//};
-//var _rX = -30, _rY = 40, _rZ = 0;
-//$cubeContainer.onmousemove = function (e) {
-  //if (!dragging) {return;}
-  //var x = e.offsetX;
-  //var y = e.offsetY;
-  //var dx = dragStart.x - x;
-  //var dy = dragStart.y - y;
-  //_rY = (_rY + (dx / 2));// % 360;
-  //_rX = (_rX - (dy / 2));/// % 360;
-  //console.log($cube.style.transform);
-  //$cube.style.transform = 'translateZ(-1200px) rotateX('+_rX+'deg) rotateY('+_rY+'deg) rotateZ('+_rZ+'deg)';
-  //return false;
-  ////return e.preventDefault();
-//};
-//$cubeContainer.onmouseup = function (e) {
-  //dragStart = {};
-  //dragging = false;
-  //return false;
-//};
 var $faces = {
   0: document.getElementById('cube-top'),
   1: document.getElementById('cube-front'),
@@ -57,24 +27,11 @@ var $faces = {
 };
 for (var face in $faces) {
   var $f = $faces[face];
+  $f.face = face;
   $f.onclick = function (e) {
-    var x = e.offsetX;
-    var y = e.offsetY;
-    if (x < 20) {
-      console.log('left');
-      $f.className = 'active';
-    }
-    if (x > 280) {
-      console.log('right');
-    }
-    if (y < 20) {
-      console.log('top');
-    }
-    if (y > 280) {
-      console.log('top');
-    }
-    return false;
-  }
+    currentFace = this.face;
+    _dirty = true;
+  };
 }
 var FACE_ORIENTATIONS = {
   0: 0,
@@ -193,7 +150,7 @@ Body.prototype = {
         //console.log('collector');
         break;
       case 5: // Transfer
-        //console.log('stream');
+        streams.push(new Stream(this, this.element, this.direction));
         break;
     }
 
@@ -259,12 +216,20 @@ Stream.prototype = {
 var Transfer = function (stream, border) {
   this.f1 = faces[stream.face];
   this.i1 = stream.current;
+  if (this.f1.cells[this.i1] instanceof Body) {
+    return;
+  }
   this.f1.cells[this.i1] = 'transfer';
   this.f2 = faces[this.f1.getNeighbors()[border]];
+  if (!this.f2) {console.warn('fail?'); return;}
+  console.log(this.f2);
   this.f2.setOrientationToFace(stream.face);
   this.i2 = reorientIndex(this.i1, this.f2.orientation);
-  this.f2.cells[this.i2] = this;
-  //streams.push(new Stream(this, stream.element, border));
+  var row = getRow(this.i2);
+  var col = getRow(this.i2);
+  var body = new Body(BODY_TYPES['transfer'], [stream.element, this.f2.id, row, col, (ADJACENT_FACES[this.f1.id][border] + 2) % 4 ]);
+  body.generateStreams();
+  this.f2.cells[this.i2] = body;
 
   //this.faces = faces;
   //this.flanks = flanks;
@@ -502,7 +467,9 @@ function drawCube() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawFace(face, FACE_ORIENTATIONS[face]);
     if (face === currentFace) {
-      $faces[face].addClass('active');
+      $faces[face].className = 'active';
+    } else {
+      $faces[face].className = '';
     }
     var dataURL = canvas.toDataURL();
     $faces[face].src = dataURL;
@@ -524,45 +491,42 @@ var $tl = document.getElementById('cube-arrow-tl');
 var $tr = document.getElementById('cube-arrow-tr');
 var $bl = document.getElementById('cube-arrow-bl');
 var $br = document.getElementById('cube-arrow-br');
-var _t = 0, _f = 4, _r = 1;
-var _cubeTFR = [0, 4, 1];
-$cube.className = 'show-'+_cubeTFR.join('');
+var _rX = 0, _rY = 0, _rZ = 0;
+
+var transform = 'translateZ(-1200px) rotateX(-30deg) rotateY(40deg)';
+var _aX = 0;
+$cube.style.transform = transform;
 $tl.onclick = function (e) {
-  var t = _cubeTFR[2];
-  var f = _cubeTFR[1];
-  var r = OPPOSITE_FACES[_cubeTFR[0]];
-  _cubeTFR = [t, f, r];
-  var name = _cubeTFR.join('');
-  console.log(name);
-  $cube.className = 'show-'+name;
+  _rX = (_rX + 90);// % 360;
+  _aX = (_aX+1) % 2;
+  setCubeStyle();
 };
+
 $tr.onclick = function (e) {
-  var t = _cubeTFR[1];
-  var f = OPPOSITE_FACES[_cubeTFR[0]];
-  var r = _cubeTFR[2];
-  _cubeTFR = [t, f, r];
-  var name = _cubeTFR.join('');
-  console.log(name);
-  $cube.className = 'show-'+name;
+  console.log(_aX);
+  if(_aX === 0) {
+    _rZ = (_rZ + 90);// % 360;
+  } else if (_aX === 1) {
+    _rX = _rX + 90;
+  }
+  setCubeStyle();
 };
 $bl.onclick = function (e) {
-  var t = OPPOSITE_FACES[_cubeTFR[1]];
-  var f = _cubeTFR[0];
-  var r = _cubeTFR[2];
-  _cubeTFR = [t, f, r];
-  var name = _cubeTFR.join('');
-  console.log(name);
-  $cube.className = 'show-'+name;
+  if(_aX === 0) {
+    _rZ = (_rZ - 90);// % 360;
+  } else if (_aX === 1) {
+    //_rZ = _rZ - 90;
+  }
+  setCubeStyle();
 };
 $br.onclick = function (e) {
-  var t = OPPOSITE_FACES[_cubeTFR[2]];
-  var f = _cubeTFR[1];
-  var r = _cubeTFR[0];
-  _cubeTFR = [t, f, r];
-  var name = _cubeTFR.join('');
-  console.log(name);
-  $cube.className = 'show-'+name;
+  _rX = (_rX - 90);// % 360;
+  _aX = (_aX+1) % 2;
+  setCubeStyle();
 };
+function setCubeStyle() {
+  $cube.style.transform = transform + 'rotateX('+_rX+'deg) rotateY('+_rY+'deg) rotateZ('+_rZ+'deg)';
+}
 
 
 // }
@@ -573,6 +537,8 @@ var levels = [
     bodies: [
       [0, 0, 0, 3, 3, 0],
       [1, 2, 0, 0, 3, 0],
+      [1, 2, 4, 3, 0, 0],
+      [2, 0, 1, 3, 3, 0]
     ]
   },
   {
@@ -599,4 +565,4 @@ var levels = [
   }
 ];
 
-loadLevel(levels[0]);
+loadLevel(levels[2]);
