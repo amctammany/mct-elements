@@ -5,40 +5,49 @@
   padding: 5px;
   
 }
-.cube-container {
+#cube-container {
   
   background: white;
   width: 500px;
   margin: 20px auto;
 }
 
-.game-cube {
+#game-cube {
   width: 300px;
   height: 300px;
   margin: 20px auto 0 ;
 
-  perspective: 600px;
-  transition: transform 1s;
+  perspective: 1600px;
+  /*transition: transform 1s;*/
   /*perspective-origin: 50% 100px;*/
 }
-.cube {
+#cube {
   position: absolute;
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
-  transform:  translateZ(-300px) rotateY(-30deg) rotateX(30deg);
+  transform:  translateZ(-1200px) rotateX(-30deg) rotateY(40deg);
+  /*transition: transform 1s;*/
+  backface-visibility: hidden;
 }
-.cube figure {
+#cube.show-012 {
+  transform: translateZ(-1200px) rotateX(-30deg) rotateY(40deg);
+}
+#cube figure {
   position: absolute;
-  width: 296px;
-  height: 296px;
-  display: block;
-  border: 2px solid black;
-}
-.cube figure img {
   width: 300px;
   height: 300px;
+  display: block;
+  transform-style: preserve-3d;
+}
+#cube figure img.active {
+  border: 2px solid white;
+}
+#cube figure img {
+  width: 296px;
+  height: 296px;
   background: black;
+  border: 2px solid black;
 }
 
 .back {
@@ -60,11 +69,9 @@
   transform: rotateX( -90deg ) translateZ(150px);
 }
 
-
 #game {
   margin: 0 auto;
   background: black;
   display: block;
   border: 3px solid #555;
-  border-radius: 3px;
 }

@@ -15,14 +15,59 @@ var bodies = [];
 var streams = [];
 var transfers = [];
 var faces = {};
+var $cubeContainer = document.getElementById('cube-container');
+var $cube = document.getElementById('cube');
+var dragging = false;
+var dragStart;
+var prevX, prevY;
+$cubeContainer.onmousedown = function (e) {
+  dragging = true;
+  dragStart = {
+    x: e.offsetX;
+    y: e.offsetY;
+  }
+  return false;
+};
+var _rX = -30, _rY = 40, _rZ = 0;
+$cubeContainer.onmousemove = function (e) {
+  if (!dragging) {return;}
+  var x = e.offsetX;
+  var y = e.offsetY;
+  var dx = dragStart.x - x;
+  var dy = dragStart.y - y;
+  _rY = (_rY + (dx / 2));// % 360;
+  _rX = (_rX - (dy / 2));/// % 360;
+  console.log($cube.style.transform);
+  $cube.style.transform = 'translateZ(-1200px) rotateX('+_rX+'deg) rotateY('+_rY+'deg) rotateZ('+_rZ+'deg)';
+  return false;
+  //return e.preventDefault();
+};
+$cubeContainer.onmouseup = function (e) {
+  dragStart = {};
+  dragging = false;
+  return false;
+};
 var $faces = {
   0: document.getElementById('cube-top'),
-  1: document.getElementById('cube-front'),
+  1: document.getElementById('cube-back'),
   2: document.getElementById('cube-right'),
-  3: document.getElementById('cube-back'),
+  3: document.getElementById('cube-front'),
   4: document.getElementById('cube-left'),
   5: document.getElementById('cube-bottom'),
+};
+for (var face in $faces) {
+  $faces[face].onclick = function (e) {
+    console.log(this);
+  }
 }
+var FACE_ORIENTATIONS = {
+  0: 0,
+  1: 0,
+  2: 0,
+  3: 0,
+  4: 0,
+  5: 0
+};
 
 var ADJACENT_FACES = {
   0: [3,2,1,4],
@@ -38,7 +83,8 @@ var BODY_TYPES = {
   reflector: 1,
   collector: 2,
   stream: 3,
-  collision: 4
+  collision: 4,
+  transfer: 5,
 };
 
 var ELEMENT_TYPES = {
@@ -122,7 +168,7 @@ Body.prototype = {
       case 2:
         //console.log('collector');
         break;
-      case 3:
+      case 5: // Transfer
         //console.log('stream');
         break;
     }
@@ -169,9 +215,10 @@ Stream.prototype = {
     } else {
       cells[this.current] = this;
     }
-    if (!checkBoundaries(this.current, this.direction)) {
+    var border = checkBoundaries(this.current, this.direction);
+    if (border > -1) {
       this.completed = true;
-      transfers.push(new Transfer());
+      transfers.push(new Transfer(this, border));
     }
     this.current = shiftIndex(this.current, this.direction);
 
@@ -185,11 +232,19 @@ Stream.prototype = {
 };
 // }
 // Transfer {
-var Transfer = function (faces, flanks, position, stream) {
-  this.faces = faces;
-  this.flanks = flanks;
-  this.position = position;
-  this.stream = stream;
+var Transfer = function (stream, border) {
+  this.f1 = faces[stream.face];
+  this.i1 = stream.current;
+  this.f1.cells[this.i1] = 'transfer';
+  this.f2 = faces[this.f1.getNeighbors()[border]];
+  this.f2.setOrientationToFace(stream.face);
+  this.i2 = reorientIndex(this.i1, this.f2.orientation);
+  this.f2.cells[this.i2] = this;
+
+  //this.faces = faces;
+  //this.flanks = flanks;
+  //this.position = position;
+  //this.stream = stream;
 
 };
 // }
@@ -213,8 +268,12 @@ var Face = function (id) {
   this.orientation = 0;
 
   this.cells = {};
+  this.cells[0] = 'foo'
 };
 Face.prototype = {
+  setOrientationToFace: function (face) {
+    this.orientation = this.neighbors.indexOf(face);
+  },
   getNeighbors: function () {
     var orienation = this.orientation;
     var head = this.neighbors.slice(0, orientation);
@@ -284,25 +343,25 @@ function checkBoundaries(index, direction) {
   if (index < 0 || index >= maxIndex) { return false; }
   var row = getRow(index);
   var col = getColumn(index);
-  var inBounds = true;
+  var border = -1;
   switch (direction) {
     case 0:
-      if (row === 0) {inBounds = false;}
+      if (row === 0) {border = 0;}
       break;
     case 1:
-      if (col === columns - 1) {inBounds = false;}
+      if (col === columns - 1) {border = 1;}
       break;
     case 2:
-      if (row === rows - 1) {inBounds = false;}
+      if (row === rows - 1) {border = 2;}
       break;
     case 3:
-      if (col === 0) {inBounds = false;}
+      if (col === 0) {border = 3;}
       break;
     default:
       console.error('invalid direction');
       break;
   }
-  return inBounds;
+  return border;
 }
 
 // }
@@ -317,6 +376,11 @@ function getIndex(row, column, orientation) {
   } else if (orientation === 3) {
     return getIndex(column, rows - row - 1);
   }
+}
+function reorientIndex(index, orientation) {
+  var row = getRow(index);
+  var column = getColumn(index);
+  return getIndex(row, column, orientation);
 }
 function getRow(index) {
   return Math.floor(index/columns);
@@ -357,9 +421,9 @@ function drawFace (face, orientation) {
         // Stream Drawing
         else if (cell instanceof Stream) {
           if ((cell.direction + orientation) % 2 === 1) {
-            ctx.rect(j * w, (i + 0.5) * h, w, 3);
+            ctx.rect(j * w, (i + 0.4) * h, w, h * 0.2);
           } else {
-            ctx.rect((j + 0.5) * w, i * h, 3, h);
+            ctx.rect((j + 0.4) * w, i * h, w * 0.2, h);
           }
         }
         // Reflector Drawing
@@ -397,9 +461,9 @@ function drawFace (face, orientation) {
     }
   }
 
-  ctx.fillStyle = 'white';
-  ctx.font = '20px Verdana';
-  ctx.fillText(face, 20, 20);
+  //ctx.fillStyle = 'white';
+  //ctx.font = '20px Verdana';
+  //ctx.fillText(face, 20, 20);
 
 }
 
@@ -410,7 +474,11 @@ function rotateCube(direction) {
 }
 function drawCube() {
   for (var face in $faces) {
-    drawFace(face, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawFace(face, FACE_ORIENTATIONS[face]);
+    if (face === currentFace) {
+      $faces[face].addClass('active');
+    }
     var dataURL = canvas.toDataURL();
     $faces[face].src = dataURL;
   }
@@ -458,7 +526,15 @@ var levels = [
       [2, 3, 4, 7, 10, 0],
       [2, 3, 5, 3, 7, 0],
     ]
+  },
+  {
+    rows: 5,
+    columns: 5,
+    bodies: [
+      //[0, 0, 0, 2, 2, 0],
+
+    ]
   }
 ];
 
-loadLevel(levels[1]);
+loadLevel(levels[2]);
