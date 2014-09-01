@@ -17,47 +17,63 @@ var transfers = [];
 var faces = {};
 var $cubeContainer = document.getElementById('cube-container');
 var $cube = document.getElementById('cube');
-var dragging = false;
-var dragStart;
-var prevX, prevY;
-$cubeContainer.onmousedown = function (e) {
-  dragging = true;
-  dragStart = {
-    x: e.offsetX;
-    y: e.offsetY;
-  }
-  return false;
-};
-var _rX = -30, _rY = 40, _rZ = 0;
-$cubeContainer.onmousemove = function (e) {
-  if (!dragging) {return;}
-  var x = e.offsetX;
-  var y = e.offsetY;
-  var dx = dragStart.x - x;
-  var dy = dragStart.y - y;
-  _rY = (_rY + (dx / 2));// % 360;
-  _rX = (_rX - (dy / 2));/// % 360;
-  console.log($cube.style.transform);
-  $cube.style.transform = 'translateZ(-1200px) rotateX('+_rX+'deg) rotateY('+_rY+'deg) rotateZ('+_rZ+'deg)';
-  return false;
-  //return e.preventDefault();
-};
-$cubeContainer.onmouseup = function (e) {
-  dragStart = {};
-  dragging = false;
-  return false;
-};
+//var dragging = false;
+//var dragStart;
+//var prevX, prevY;
+//$cubeContainer.onmousedown = function (e) {
+  //dragging = true;
+  //dragStart = {
+    //x: e.offsetX;
+    //y: e.offsetY;
+  //}
+  //return false;
+//};
+//var _rX = -30, _rY = 40, _rZ = 0;
+//$cubeContainer.onmousemove = function (e) {
+  //if (!dragging) {return;}
+  //var x = e.offsetX;
+  //var y = e.offsetY;
+  //var dx = dragStart.x - x;
+  //var dy = dragStart.y - y;
+  //_rY = (_rY + (dx / 2));// % 360;
+  //_rX = (_rX - (dy / 2));/// % 360;
+  //console.log($cube.style.transform);
+  //$cube.style.transform = 'translateZ(-1200px) rotateX('+_rX+'deg) rotateY('+_rY+'deg) rotateZ('+_rZ+'deg)';
+  //return false;
+  ////return e.preventDefault();
+//};
+//$cubeContainer.onmouseup = function (e) {
+  //dragStart = {};
+  //dragging = false;
+  //return false;
+//};
 var $faces = {
   0: document.getElementById('cube-top'),
-  1: document.getElementById('cube-back'),
+  1: document.getElementById('cube-front'),
   2: document.getElementById('cube-right'),
-  3: document.getElementById('cube-front'),
+  3: document.getElementById('cube-back'),
   4: document.getElementById('cube-left'),
   5: document.getElementById('cube-bottom'),
 };
 for (var face in $faces) {
-  $faces[face].onclick = function (e) {
-    console.log(this);
+  var $f = $faces[face];
+  $f.onclick = function (e) {
+    var x = e.offsetX;
+    var y = e.offsetY;
+    if (x < 20) {
+      console.log('left');
+      $f.className = 'active';
+    }
+    if (x > 280) {
+      console.log('right');
+    }
+    if (y < 20) {
+      console.log('top');
+    }
+    if (y > 280) {
+      console.log('top');
+    }
+    return false;
   }
 }
 var FACE_ORIENTATIONS = {
@@ -76,6 +92,14 @@ var ADJACENT_FACES = {
   3: [0,4,5,4],
   4: [0,1,5,3],
   5: [3,4,1,2]
+};
+var OPPOSITE_FACES = {
+  0: 5,
+  1: 3,
+  2: 4,
+  3: 1,
+  4: 2,
+  5: 0,
 };
 
 var BODY_TYPES = {
@@ -240,6 +264,7 @@ var Transfer = function (stream, border) {
   this.f2.setOrientationToFace(stream.face);
   this.i2 = reorientIndex(this.i1, this.f2.orientation);
   this.f2.cells[this.i2] = this;
+  //streams.push(new Stream(this, stream.element, border));
 
   //this.faces = faces;
   //this.flanks = flanks;
@@ -268,7 +293,7 @@ var Face = function (id) {
   this.orientation = 0;
 
   this.cells = {};
-  this.cells[0] = 'foo'
+  //this.cells[0] = 'foo'
 };
 Face.prototype = {
   setOrientationToFace: function (face) {
@@ -461,9 +486,9 @@ function drawFace (face, orientation) {
     }
   }
 
-  //ctx.fillStyle = 'white';
-  //ctx.font = '20px Verdana';
-  //ctx.fillText(face, 20, 20);
+  ctx.fillStyle = 'white';
+  ctx.font = '60px Verdana';
+  ctx.fillText(face, canvas.width / 2, canvas.height / 2);
 
 }
 
@@ -495,14 +520,51 @@ raf.start(function (elapsed) {
 });
 // }
 // User Input {
-canvas.onmousedown = function (e) {
-  var x = e.offsetX;
-  var y = e.offsetY;
-  if (x < 25) { rotateCube(3); }
-  if (x > canvas.width - 25) { rotateCube(1); }
-  if (y < 25) { rotateCube(0); }
-  if (y > canvas.height - 25) { rotateCube(2); }
+var $tl = document.getElementById('cube-arrow-tl');
+var $tr = document.getElementById('cube-arrow-tr');
+var $bl = document.getElementById('cube-arrow-bl');
+var $br = document.getElementById('cube-arrow-br');
+var _t = 0, _f = 4, _r = 1;
+var _cubeTFR = [0, 4, 1];
+$cube.className = 'show-'+_cubeTFR.join('');
+$tl.onclick = function (e) {
+  var t = _cubeTFR[2];
+  var f = _cubeTFR[1];
+  var r = OPPOSITE_FACES[_cubeTFR[0]];
+  _cubeTFR = [t, f, r];
+  var name = _cubeTFR.join('');
+  console.log(name);
+  $cube.className = 'show-'+name;
 };
+$tr.onclick = function (e) {
+  var t = _cubeTFR[1];
+  var f = OPPOSITE_FACES[_cubeTFR[0]];
+  var r = _cubeTFR[2];
+  _cubeTFR = [t, f, r];
+  var name = _cubeTFR.join('');
+  console.log(name);
+  $cube.className = 'show-'+name;
+};
+$bl.onclick = function (e) {
+  var t = OPPOSITE_FACES[_cubeTFR[1]];
+  var f = _cubeTFR[0];
+  var r = _cubeTFR[2];
+  _cubeTFR = [t, f, r];
+  var name = _cubeTFR.join('');
+  console.log(name);
+  $cube.className = 'show-'+name;
+};
+$br.onclick = function (e) {
+  var t = OPPOSITE_FACES[_cubeTFR[2]];
+  var f = _cubeTFR[1];
+  var r = _cubeTFR[0];
+  _cubeTFR = [t, f, r];
+  var name = _cubeTFR.join('');
+  console.log(name);
+  $cube.className = 'show-'+name;
+};
+
+
 // }
 var levels = [
   {
@@ -537,4 +599,4 @@ var levels = [
   }
 ];
 
-loadLevel(levels[2]);
+loadLevel(levels[0]);
