@@ -191,6 +191,9 @@ Stream.prototype = {
     var cell = cells[this.current];
     if (cell instanceof Stream) {
       cell.collidesWith(this, this.current);
+    } else if (cell instanceof Transfer) {
+      console.log('fail');
+      //return;
     } else if (cell instanceof Body) {
       cell.collidesWith(this);
     } else {
@@ -228,7 +231,7 @@ var Transfer = function (stream, border) {
   var row = getRow(this.i2);
   var col = getRow(this.i2);
   var body = new Body(BODY_TYPES['transfer'], [stream.element, this.f2.id, row, col, (ADJACENT_FACES[this.f1.id][border] + 2) % 4 ]);
-  body.generateStreams();
+  //body.generateStreams();
   this.f2.cells[this.i2] = body;
 
   //this.faces = faces;
@@ -559,7 +562,13 @@ var levels = [
     rows: 5,
     columns: 5,
     bodies: [
-      //[0, 0, 0, 2, 2, 0],
+      [0, 0, 0, 2, 2, 0],
+      [2, 0, 0, 2, 2, 0],
+      [2, 0, 1, 2, 2, 0],
+      [2, 0, 2, 2, 2, 0],
+      [2, 0, 3, 2, 2, 0],
+      [2, 0, 4, 2, 2, 0],
+      [2, 0, 5, 2, 2, 0],
 
     ]
   }
