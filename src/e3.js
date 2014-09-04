@@ -150,7 +150,8 @@ Body.prototype = {
         //console.log('collector');
         break;
       case 5: // Transfer
-        streams.push(new Stream(this, this.element, this.direction));
+        var stream = new Stream(this, this.element, this.direction);
+        streams.push(stream);
         break;
     }
 
@@ -202,6 +203,7 @@ Stream.prototype = {
     var border = checkBoundaries(this.current, this.direction);
     if (border > -1) {
       this.completed = true;
+      //console.log('transfer');
       transfers.push(new Transfer(this, border));
     }
     this.current = shiftIndex(this.current, this.direction);
@@ -222,17 +224,20 @@ var Transfer = function (stream, border) {
   if (this.f1.cells[this.i1] instanceof Body) {
     return;
   }
-  this.f1.cells[this.i1] = 'transfer';
+  //this.f1.cells[this.i1] = 'transfer';
   this.f2 = faces[this.f1.getNeighbors()[border]];
   if (!this.f2) {console.warn('fail?'); return;}
-  console.log(this.f2);
-  this.f2.setOrientationToFace(stream.face);
-  this.i2 = reorientIndex(this.i1, this.f2.orientation);
+  //console.log(this.f2);
+  var orientation = this.f2.getOrientationFromFace(this.f1.id);
+  this.i2 = reorientIndex(this.i1, orientation);
   var row = getRow(this.i2);
-  var col = getRow(this.i2);
-  var body = new Body(BODY_TYPES['transfer'], [stream.element, this.f2.id, row, col, (ADJACENT_FACES[this.f1.id][border] + 2) % 4 ]);
-  //body.generateStreams();
+  var col = getColumn(this.i2);
+  var body = this;
+  //var body = new Body(BODY_TYPES['transfer'], [stream.element, this.f2.id, row, col, (ADJACENT_FACES[this.f1.id][border] + 4) % 4 ]);
   this.f2.cells[this.i2] = body;
+
+  //body.generateStreams();
+  //transN++;
 
   //this.faces = faces;
   //this.flanks = flanks;
@@ -258,14 +263,14 @@ Collision.prototype = {
 var Face = function (id) {
   this.id = id;
   this.neighbors = ADJACENT_FACES[id];
-  this.orientation = 0;
+  this.orientation = FACE_ORIENTATIONS[id];
 
   this.cells = {};
   //this.cells[0] = 'foo'
 };
 Face.prototype = {
-  setOrientationToFace: function (face) {
-    this.orientation = this.neighbors.indexOf(face);
+  getOrientationFromFace: function (face) {
+    return this.neighbors.indexOf(face);
   },
   getNeighbors: function () {
     var orienation = this.orientation;
@@ -389,11 +394,15 @@ function shiftIndex(index, direction) {
     return index + (direction === 1 ? 1 : -1 );
   }
 }
-function getIndexFromMouse (x, y) {
+function getCell (x, y) {
   var row = Math.floor(y / h);
   var col = Math.floor(x / w);
   //console.log('row: ' + row + '; col: ' + col);
-  return getIndex(row, col);
+  return function (f) {
+    var face = faces[f]
+    var index = getIndex(row, col, face.orientation);
+    return face.cells[index];
+  };
 }
 // }
 // Drawing and Animation {
@@ -402,7 +411,7 @@ function drawFace (face, orientation) {
   var cells = faces[face].cells;
   for (var i = 0; i < rows; i++) {
     for (var j = 0; j < columns; j++) {
-      var cell = cells[getIndex(i, j, orientation)];
+      var cell = cells[getIndex(i, j, faces[face].orientation)];
       ctx.beginPath();
       if (cell) {
         ctx.fillStyle = ELEMENT_FILL[cell.element] || 'white';
@@ -490,6 +499,11 @@ raf.start(function (elapsed) {
 });
 // }
 // User Input {
+//
+canvas.onclick = function (e) {
+  var index = getCell(e.offsetX, e.offsetY)(currentFace);
+  console.log(index);
+};
 var $tl = document.getElementById('cube-arrow-tl');
 var $tr = document.getElementById('cube-arrow-tr');
 var $bl = document.getElementById('cube-arrow-bl');
@@ -563,12 +577,12 @@ var levels = [
     columns: 5,
     bodies: [
       [0, 0, 0, 2, 2, 0],
-      [2, 0, 0, 2, 2, 0],
-      [2, 0, 1, 2, 2, 0],
-      [2, 0, 2, 2, 2, 0],
-      [2, 0, 3, 2, 2, 0],
+      [0, 0, 1, 2, 2, 0],
+      //[0, 0, 1, 2, 2, 0],
+      [0, 0, 2, 2, 2, 0],
+      [0, 0, 3, 2, 2, 0],
       [2, 0, 4, 2, 2, 0],
-      [2, 0, 5, 2, 2, 0],
+      //[2, 0, 5, 2, 2, 0],
 
     ]
   }
