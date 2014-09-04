@@ -15,6 +15,9 @@ var bodies = [];
 var streams = [];
 var transfers = [];
 var faces = {};
+var getFace = function (id) {
+  return faces[id];
+};
 var $cubeContainer = document.getElementById('cube-container');
 var $cube = document.getElementById('cube');
 var $faces = {
@@ -34,21 +37,21 @@ for (var face in $faces) {
   };
 }
 var FACE_ORIENTATIONS = {
-  0: 2,
+  0: 0,
   1: 0,
   2: 0,
-  3: 2,
+  3: 0,
   4: 0,
   5: 0
 };
 
 var ADJACENT_FACES = {
-  0: [3,2,1,4],
-  1: [0,2,5,4],
+  0: [3,4,1,2],
+  1: [0,4,5,2],
   2: [0,3,5,1],
-  3: [0,4,5,4],
+  3: [0,2,5,4],
   4: [0,1,5,3],
-  5: [3,4,1,2]
+  5: [1,2,3,4]
 };
 var OPPOSITE_FACES = {
   0: 5,
@@ -219,24 +222,34 @@ Stream.prototype = {
 // }
 // Transfer {
 var Transfer = function (stream, border) {
-  this.f1 = faces[stream.face];
-  this.i1 = stream.current;
-  if (this.f1.cells[this.i1] instanceof Body) {
-    return;
-  }
-  //this.f1.cells[this.i1] = 'transfer';
-  this.f2 = faces[this.f1.getNeighbors()[border]];
-  if (!this.f2) {console.warn('fail?'); return;}
-  //console.log(this.f2);
-  var orientation = this.f2.getOrientationFromFace(this.f1.id);
-  this.i2 = reorientIndex(this.i1, orientation);
-  var row = getRow(this.i2);
-  var col = getColumn(this.i2);
-  var body = this;
-  //var body = new Body(BODY_TYPES['transfer'], [stream.element, this.f2.id, row, col, (ADJACENT_FACES[this.f1.id][border] + 4) % 4 ]);
-  this.f2.cells[this.i2] = body;
+  this.f1 = getFace(stream.face);
+  this.f2 = getFace(this.f1.getNeighbors()[border]);
+  this.position = this.f1.getEdgePosition(stream.current, border);
+  this.border = this.f2.getNeighbors().indexOf(this.f1.id);
+  this.index = this.f2.fromEdgePosition(this.position, this.border);
+  this.f2.cells[this.index] = this;
+  //this.f1 = faces[stream.face];
+  //this.i1 = stream.current;
+  //if (this.f1.cells[this.i1] instanceof Body) {
+    //return;
+  //}
+  ////this.f1.cells[this.i1] = 'transfer';
+  //this.f2 = faces[this.f1.getNeighbors()[border]];
+  //if (!this.f2) {console.warn('fail?'); return;}
+  ////console.log(this.f2);
+  //var orientation = this.f2.getOrientationFromFace(this.f1.id);
+  //this.i2 = reorientIndex(this.i1, orientation);
+  //var row = getRow(this.i2);
+  //var col = getColumn(this.i2);
+  //this.element = stream.element;
+  //this.index = this.i2;
+  //this.face = this.f2.id;
+  //this.direction = (orientation + 2) % 4;
+  //var body = this;
+  ////var body = new Body(BODY_TYPES['transfer'], [stream.element, this.f2.id, row, col, (ADJACENT_FACES[this.f1.id][border] + 4) % 4 ]);
+  //this.f2.cells[this.i2] = body;
 
-  //body.generateStreams();
+  //this.generateStreams();
   //transN++;
 
   //this.faces = faces;
@@ -244,6 +257,10 @@ var Transfer = function (stream, border) {
   //this.position = position;
   //this.stream = stream;
 
+};
+Transfer.prototype.generateStreams = function () {
+  streams.push(new Stream(this, this.element, this.direction));
+  console.log('generate transfers');
 };
 // }
 // Collision {
@@ -272,6 +289,49 @@ Face.prototype = {
   getOrientationFromFace: function (face) {
     return this.neighbors.indexOf(face);
   },
+  getEdgePosition: function (index, border) {
+    var position = -1;
+    switch (border) {
+      case 0:
+        position = getColumn(index);
+        break;
+      case 1:
+        position = getRow(index);
+        break;
+      case 2:
+        position = getColumn(index);
+        break;
+      case 3:
+        position = getRow(index);
+        break;
+      default:
+        console.warn('invalid border selection');
+        break;
+    }
+    return position;
+  },
+  fromEdgePosition: function (position, border) {
+    var index = -1;
+    switch (border) {
+      case 0:
+        index = getIndex(0, position);
+        break;
+      case 1:
+        index = getIndex(position, currentLevel.columns - 1);
+        break;
+      case 2:
+        index = getIndex(currentLevel.rows - 1, currentLevel.columns - position - 1)
+        break;
+      case 3:
+        index = getIndex(currentLevel.rows - position, 0)
+        break;
+      default:
+        console.warn('invalid border selection');
+        break;
+    }
+    return index;
+  },
+
   getNeighbors: function () {
     var orienation = this.orientation;
     var head = this.neighbors.slice(0, orientation);
@@ -499,7 +559,6 @@ raf.start(function (elapsed) {
 });
 // }
 // User Input {
-//
 canvas.onclick = function (e) {
   var index = getCell(e.offsetX, e.offsetY)(currentFace);
   console.log(index);
@@ -535,6 +594,7 @@ function setCubeStyle() {
 
 
 // }
+// Level Definitions {
 var levels = [
   {
     rows: 7,
@@ -561,14 +621,14 @@ var levels = [
     ]
   },
   {
-    rows: 5,
-    columns: 5,
+    rows: 6,
+    columns: 6,
     bodies: [
       //[0, 0, 0, 2, 2, 0],
-      [0, 0, 1, 2, 2, 0],
-      //[0, 0, 1, 2, 2, 0],
-      [0, 0, 2, 2, 2, 0],
-      [0, 0, 3, 2, 2, 0],
+      [0, 0, 1, 2, 1, 0],
+      [0, 0, 5, 2, 2, 1],
+      [0, 0, 2, 4, 4, 2],
+      [0, 0, 3, 2, 3, 3],
       [2, 0, 4, 2, 2, 0],
       //[2, 0, 5, 2, 2, 0],
 
@@ -577,3 +637,4 @@ var levels = [
 ];
 
 loadLevel(levels[2]);
+// }
