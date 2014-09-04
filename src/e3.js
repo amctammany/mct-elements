@@ -186,6 +186,7 @@ var Stream = function (source, element, direction) {
 
 Stream.prototype = {
   propagate: function () {
+    console.log(this.face);
     if (this.completed) {return;}
     this.path.push(this.current);
     var cells = faces[this.face].cells;
@@ -232,11 +233,15 @@ var Transfer = function (stream, border) {
   this.i2 = reorientIndex(this.i1, orientation);
   var row = getRow(this.i2);
   var col = getColumn(this.i2);
+  this.element = stream.element;
+  this.index = this.i2;
+  this.face = this.f2.id;
+  this.direction = (orientation + 2) % 4;
   var body = this;
   //var body = new Body(BODY_TYPES['transfer'], [stream.element, this.f2.id, row, col, (ADJACENT_FACES[this.f1.id][border] + 4) % 4 ]);
   this.f2.cells[this.i2] = body;
 
-  //body.generateStreams();
+  this.generateStreams();
   //transN++;
 
   //this.faces = faces;
@@ -244,6 +249,10 @@ var Transfer = function (stream, border) {
   //this.position = position;
   //this.stream = stream;
 
+};
+Transfer.prototype.generateStreams = function () {
+  streams.push(new Stream(this, this.element, this.direction));
+  console.log('generate transfers');
 };
 // }
 // Collision {
@@ -499,7 +508,6 @@ raf.start(function (elapsed) {
 });
 // }
 // User Input {
-//
 canvas.onclick = function (e) {
   var index = getCell(e.offsetX, e.offsetY)(currentFace);
   console.log(index);
