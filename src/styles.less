@@ -14,13 +14,16 @@
 }
 
 #game-cube {
-  width: 300px;
-  height: 300px;
-  margin: 20px auto 0 ;
+  padding: 50px;
+  margin: auto;
+  /*width: 300px;*/
+  /*height: 300px;*/
+  /*margin: 20px auto 0 ;*/
 
-  perspective: 1600px;
-  /*transition: transform 1s;*/
-  /*perspective-origin: 50% 100px;*/
+  /*perspective: 2000px;*/
+  /*perspective-origin: 50% 50%;*/
+  /*[>transition: transform 1s;<]*/
+  /*[>perspective-origin: 50% 100px;<]*/
 }
 .cube-arrow {
   position: absolute;
@@ -45,49 +48,51 @@
   right: 2px;
 }
 
-#cube {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-  transform-origin: 50%;
-  transition: transform 1s;
-  /*backface-visibility: hidden;*/
-}
-#cube figure {
-  position: absolute;
-  width: 300px;
-  height: 300px;
-  display: block;
-  transform-style: preserve-3d;
-}
-#cube figure img.active {
+/*.cube {*/
+  /*position: absolute;*/
+  /*width: 100%;*/
+  /*height: 100%;*/
+  /*transform-style: preserve-3d;*/
+  /*transition: transform 1s;*/
+  /*[>backface-visibility: hidden;<]*/
+/*}*/
+/*#cube-inner {*/
+  /*transform: translateZ(-1600px) rotateX(-30deg) rotateY(40deg);*/
+/*}*/
+/*.cube div {*/
+  /*position: absolute;*/
+  /*width: 300px;*/
+  /*height: 300px;*/
+  /*display: block;*/
+  /*transform-style: inherit;*/
+/*}*/
+.cube figure img.active {
   border: 2px solid white;
 }
-#cube figure img {
-  width: 296px;
-  height: 296px;
+.cube figure img {
+  width: 196px;
+  height: 196px;
   background: black;
   border: 2px solid black;
 }
 
 .back {
-  transform: rotateX( 180deg ) translateZ(150px);
+  transform: rotateX( 180deg ) translateZ(100px);
 }
 .front {
-  transform: rotateY( 0deg ) translateZ(150px);
+  transform: rotateY( 0deg ) translateZ(100px);
 }
 .right {
-  transform: rotateY( 90deg ) translateZ(150px);
+  transform: rotateY( 90deg ) translateZ(100px);
 }
 .left {
-  transform: rotateY( -90deg ) translateZ(150px);
+  transform: rotateY( -90deg ) translateZ(100px);
 }
 .top {
-  transform: rotateX( 90deg ) translateZ(150px);
+  transform: rotateX( 90deg ) translateZ(100px);
 }
 .bottom {
-  transform: rotateX( -90deg ) translateZ(150px);
+  transform: rotateX( -90deg ) translateZ(100px);
 }
 
 #game {
@@ -96,3 +101,33 @@
   display: block;
   border: 3px solid #555;
 }
+
+.container {
+  width: 200px;
+  height: 200px;
+  margin: 10px auto;
+  perspective: 800px;
+  perspective-origin: -150% -100%;
+  /*transform-origin: 0% 0%;*/
+}
+.container .cube  {
+  transform-style: preserve-3d;
+  transform: translateZ(-200px);
+  position: relative;
+  margin: 0;
+  width: 200px;
+  height: 200px;
+  top: 50%;
+  left: 50%;
+  transition: 1s;
+}
+.container .cube figure {
+  width: 200px;
+  height: 200px;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.8);
+  position: absolute;
+  text-align: center;
+}
+
+

@@ -34,10 +34,10 @@ for (var face in $faces) {
   };
 }
 var FACE_ORIENTATIONS = {
-  0: 0,
+  0: 2,
   1: 0,
   2: 0,
-  3: 0,
+  3: 2,
   4: 0,
   5: 0
 };
@@ -510,39 +510,27 @@ var $bl = document.getElementById('cube-arrow-bl');
 var $br = document.getElementById('cube-arrow-br');
 var _rX = 0, _rY = 0, _rZ = 0;
 
-var transform = 'translateZ(-1200px) rotateX(-30deg) rotateY(40deg)';
-var _aX = 0;
-$cube.style.transform = transform;
+//var transform = 'translateZ(-1850px) rotateX(-30deg) rotateY(40deg)';
+//$cube.style.transform = transform;
 $tl.onclick = function (e) {
   _rX = (_rX + 90);// % 360;
-  _aX = (_aX+1) % 2;
   setCubeStyle();
 };
 
 $tr.onclick = function (e) {
-  console.log(_aX);
-  if(_aX === 0) {
-    _rZ = (_rZ + 90);// % 360;
-  } else if (_aX === 1) {
-    _rX = _rX + 90;
-  }
+  _rZ = (_rZ + 90);// % 360;
   setCubeStyle();
 };
 $bl.onclick = function (e) {
-  if(_aX === 0) {
-    _rZ = (_rZ - 90);// % 360;
-  } else if (_aX === 1) {
-    //_rZ = _rZ - 90;
-  }
+  _rZ = (_rZ - 90);// % 360;
   setCubeStyle();
 };
 $br.onclick = function (e) {
-  _rX = (_rX - 90);// % 360;
-  _aX = (_aX+1) % 2;
+  _rY = (_rY - 90);// % 360;
   setCubeStyle();
 };
 function setCubeStyle() {
-  $cube.style.transform = transform + 'rotateX('+_rX+'deg) rotateY('+_rY+'deg) rotateZ('+_rZ+'deg)';
+  $cube.style.transform = 'translateZ(-200px) rotateX('+_rX+'deg) rotateY('+_rY+'deg) rotateZ('+_rZ+'deg)';
 }
 
 
@@ -576,7 +564,7 @@ var levels = [
     rows: 5,
     columns: 5,
     bodies: [
-      [0, 0, 0, 2, 2, 0],
+      //[0, 0, 0, 2, 2, 0],
       [0, 0, 1, 2, 2, 0],
       //[0, 0, 1, 2, 2, 0],
       [0, 0, 2, 2, 2, 0],
