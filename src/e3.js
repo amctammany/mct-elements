@@ -8,7 +8,7 @@ var w, h;
 var _selectedLevel; // Level Config
 var currentLevel; // Level Instance
 var orientation; // Cube Orientation
-var rows, columns, maxIndex;
+var size, maxIndex;
 var _dirty = true;
 var currentFace = 0;
 var bodies = [];
@@ -37,19 +37,19 @@ for (var face in $faces) {
   };
 }
 var FACE_ORIENTATIONS = {
-  0: 0,
+  0: 3,
   1: 0,
   2: 0,
-  3: 0,
+  3: 2,
   4: 0,
-  5: 0
+  5: 1,
 };
 
 var ADJACENT_FACES = {
-  0: [3,4,1,2],
-  1: [0,4,5,2],
+  0: [3,2,1,4],
+  1: [0,2,5,4],
   2: [0,3,5,1],
-  3: [0,2,5,4],
+  3: [5,4,0,2],
   4: [0,1,5,3],
   5: [1,2,3,4]
 };
@@ -289,6 +289,9 @@ Face.prototype = {
   getOrientationFromFace: function (face) {
     return this.neighbors.indexOf(face);
   },
+  getIndex: function (row, column) {
+    return getIndex(row, column, this.orientation);
+  },
   getEdgePosition: function (index, border) {
     var position = -1;
     switch (border) {
@@ -302,28 +305,29 @@ Face.prototype = {
         position = getColumn(index);
         break;
       case 3:
-        position = getRow(index);
+        position = size - getRow(index);
         break;
       default:
         console.warn('invalid border selection');
         break;
     }
-    return position;
+    return this.getIndex(0, position);
   },
   fromEdgePosition: function (position, border) {
     var index = -1;
+    var size = currentLevel.size;
     switch (border) {
       case 0:
-        index = getIndex(0, position);
+        index = this.getIndex(0, position);
         break;
       case 1:
-        index = getIndex(position, currentLevel.columns - 1);
+        index = this.getIndex(position, 0);
         break;
       case 2:
-        index = getIndex(currentLevel.rows - 1, currentLevel.columns - position - 1)
+        index = this.getIndex(size - 1, position - 0);
         break;
       case 3:
-        index = getIndex(currentLevel.rows - position, 0)
+        index = this.getIndex(size - position - 1, size - 1);
         break;
       default:
         console.warn('invalid border selection');
@@ -369,11 +373,11 @@ function checkVictoryConditions() {
 // Level Management + Instantiation {
 function loadLevel(level) {
   _selectedLevel = level;
-  rows = level.rows;
-  columns = level.columns;
-  maxIndex = rows * columns;
-  w = canvas.width / columns;
-  h = canvas.height / rows;
+  size = level.size;
+  size = level.size;
+  maxIndex = size * size;
+  w = canvas.width / size;
+  h = canvas.height / size;
 
   bodies = level.bodies.map(function (b) {
     return createBody.apply(null, b);
@@ -407,10 +411,10 @@ function checkBoundaries(index, direction) {
       if (row === 0) {border = 0;}
       break;
     case 1:
-      if (col === columns - 1) {border = 1;}
+      if (col === size - 1) {border = 1;}
       break;
     case 2:
-      if (row === rows - 1) {border = 2;}
+      if (row === size - 1) {border = 2;}
       break;
     case 3:
       if (col === 0) {border = 3;}
@@ -426,13 +430,13 @@ function checkBoundaries(index, direction) {
 // Indexing Functions {
 function getIndex(row, column, orientation) {
   if (orientation === undefined || orientation === 0) {
-    return (row * columns) + column;
+    return (row * size) + column;
   } else if (orientation === 1) {
-    return getIndex(columns - column - 1, row);
+    return getIndex(size - column - 1, row);
   } else if (orientation === 2) {
-     return getIndex(rows - row - 1, columns - column - 1);
+     return getIndex(size - row - 1, size - column - 1);
   } else if (orientation === 3) {
-    return getIndex(column, rows - row - 1);
+    return getIndex(column, size - row - 1);
   }
 }
 function reorientIndex(index, orientation) {
@@ -441,15 +445,15 @@ function reorientIndex(index, orientation) {
   return getIndex(row, column, orientation);
 }
 function getRow(index) {
-  return Math.floor(index/columns);
+  return Math.floor(index/size);
 }
 function getColumn(index) {
-  return index % columns;
+  return index % size;
 }
 
 function shiftIndex(index, direction) {
   if (direction % 2 === 0) {
-    return index + (columns * (direction === 0 ? -1 : 1));
+    return index + (size * (direction === 0 ? -1 : 1));
   } else {
     return index + (direction === 1 ? 1 : -1 );
   }
@@ -469,9 +473,10 @@ function getCell (x, y) {
   // Draw Face {
 function drawFace (face, orientation) {
   var cells = faces[face].cells;
-  for (var i = 0; i < rows; i++) {
-    for (var j = 0; j < columns; j++) {
-      var cell = cells[getIndex(i, j, faces[face].orientation)];
+  orientation = orientation || getFace(face).orientation;
+  for (var i = 0; i < size; i++) {
+    for (var j = 0; j < size; j++) {
+      var cell = cells[getIndex(i, j, orientation)];
       ctx.beginPath();
       if (cell) {
         ctx.fillStyle = ELEMENT_FILL[cell.element] || 'white';
@@ -555,7 +560,7 @@ raf.start(function (elapsed) {
     drawCube();
   }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawFace(currentFace, 0);
+  drawFace(currentFace);
 });
 // }
 // User Input {
@@ -597,8 +602,7 @@ function setCubeStyle() {
 // Level Definitions {
 var levels = [
   {
-    rows: 7,
-    columns: 7,
+    size: 7,
     bodies: [
       [0, 0, 0, 3, 3, 0],
       [1, 2, 0, 0, 3, 0],
@@ -607,8 +611,7 @@ var levels = [
     ]
   },
   {
-    rows: 15,
-    columns: 15,
+    size: 15,
     bodies: [
       [0, 0, 0, 7, 7, 0],
       [1, 0, 0, 3, 7, 0],
@@ -621,8 +624,7 @@ var levels = [
     ]
   },
   {
-    rows: 6,
-    columns: 6,
+    size: 6,
     bodies: [
       //[0, 0, 0, 2, 2, 0],
       [0, 0, 1, 2, 1, 0],
@@ -631,10 +633,57 @@ var levels = [
       [0, 0, 3, 2, 3, 3],
       [2, 0, 4, 2, 2, 0],
       //[2, 0, 5, 2, 2, 0],
+    ]
+  },
+  {
+    size: 10,
+    bodies: [
+      [0, 0, 1, 2, 1, 0],
+      [0, 0, 5, 2, 2, 2],
+      [0, 0, 2, 4, 4, 1],
+      [0, 0, 3, 2, 3, 2],
 
+      [0, 0, 0, 2, 1, 0],
+      [0, 0, 4, 2, 2, 3],
+      [0, 0, 1, 4, 4, 2],
+      [0, 0, 2, 2, 3, 1],
+    ]
+  },
+  {
+    size: 3,
+    bodies: [
+      [2, 1, 0, 0, 1, 0],
+      [2, 2, 0, 1, 2, 0],
+      [2, 0, 0, 2, 1, 0],
+      [2, 3, 0, 1, 0, 0],
+
+      [2, 3, 1, 0, 1, 0],
+      [2, 2, 1, 1, 2, 0],
+      [2, 1, 1, 2, 1, 0],
+      [2, 0, 1, 1, 0, 0],
+
+      [2, 0, 2, 0, 1, 0],
+      [2, 1, 2, 1, 2, 0],
+      [2, 3, 2, 2, 1, 0],
+      [2, 2, 2, 1, 0, 0],
+
+      [2, 2, 3, 0, 1, 0],
+      [2, 3, 3, 1, 2, 0],
+      [2, 0, 3, 2, 1, 0],
+      [2, 1, 3, 1, 0, 0],
+
+      [2, 1, 4, 0, 1, 0],
+      [2, 0, 4, 1, 2, 0],
+      [2, 2, 4, 2, 1, 0],
+      [2, 3, 4, 1, 0, 0],
+
+      [2, 3, 5, 0, 1, 0],
+      [2, 0, 5, 1, 2, 0],
+      [2, 2, 5, 2, 1, 0],
+      [2, 1, 5, 1, 0, 0],
     ]
   }
 ];
 
-loadLevel(levels[2]);
+loadLevel(levels[3]);
 // }
