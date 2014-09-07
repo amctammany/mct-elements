@@ -7,40 +7,30 @@
     <link rel="stylesheet" href="build.css"/>
   </head>
   <body>
-  <!--<div class="container">-->
-    <!--<figure class="cube">-->
-      <!--<div class="front">Front</div>-->
-      <!--<div class="back">Back</div>-->
-      <!--<div class="left">Left</div>-->
-      <!--<div class="right">Right</div>-->
-      <!--<div class="top">Top</div>-->
-      <!--<div class="bottom">Bottom</div>-->
-    <!--</figure>-->
-  <!--</div>-->
     <div id="game-container">
-      <div id="cube-container">
+      <!--<div id="cube-container">-->
       
-        <button class="cube-arrow" id="cube-arrow-tl" data-direction="tl">TL</button>
-        <button class="cube-arrow" id="cube-arrow-tr" data-direction="tr">TR</button>
-        <button class="cube-arrow" id="cube-arrow-bl" data-direction="bl">BL</button>
-        <button class="cube-arrow" id="cube-arrow-br" data-direction="br">BR</button>
-      <section id="game-cube" class="container">
-        <div id="cube" class="cube">
-          <figure class="front"><img id="cube-front"></figure>
-          <figure class="back"><img id="cube-back"></figure>
-          <figure class="left"><img id="cube-left"></figure>
-          <figure class="right"><img id="cube-right"></figure>
-          <figure class="top"><img id="cube-top"></figure>
-          <figure class="bottom"><img id="cube-bottom"></figure>
-        </div>
-      </section>
-      </div>
+        <!--<button class="cube-arrow" id="cube-arrow-tl" data-direction="tl">TL</button>-->
+        <!--<button class="cube-arrow" id="cube-arrow-tr" data-direction="tr">TR</button>-->
+        <!--<button class="cube-arrow" id="cube-arrow-bl" data-direction="bl">BL</button>-->
+        <!--<button class="cube-arrow" id="cube-arrow-br" data-direction="br">BR</button>-->
+      <!--<section id="game-cube" class="container">-->
+        <!--<div id="cube" class="cube">-->
+          <!--<figure class="front"><img id="cube-front"></figure>-->
+          <!--<figure class="back"><img id="cube-back"></figure>-->
+          <!--<figure class="left"><img id="cube-left"></figure>-->
+          <!--<figure class="right"><img id="cube-right"></figure>-->
+          <!--<figure class="top"><img id="cube-top"></figure>-->
+          <!--<figure class="bottom"><img id="cube-bottom"></figure>-->
+        <!--</div>-->
+      <!--</section>-->
+      <!--</div>-->
         
       <div class="game-canvas">
-        <button class="game-button up">U</button>
-        <button class="game-button right">R</button>
-        <button class="game-button down">D</button>
-        <button class="game-button left">L</button>
+        <button class="game-button up" id="direction-up">U</button>
+        <button class="game-button right" id="direction-right">R</button>
+        <button class="game-button down" id="direction-down">D</button>
+        <button class="game-button left" id="direction-left">L</button>
       
         <canvas id="game" width="600" height="600"></canvas>
       </div>
