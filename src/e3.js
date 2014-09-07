@@ -212,6 +212,7 @@ var Face = function (id, size) {
 
 Face.prototype = {
   getCell: function (row, column, orientation) {
+    orientation = orientation || this.orientation;
     var index = this.getIndex(row, column, orientation);
     return this.cells[index];
   },
@@ -349,7 +350,7 @@ var Body = function (cube, config) {
 };
 
 Body.prototype = {
-  generateStreams: function () {
+  generateStreams: function (input) {
     var cube = this.cube;
     switch (this.type) {
       case 0: // Source
@@ -357,17 +358,12 @@ Body.prototype = {
         //this.status = true;
         break;
       case 1: // Reflector
-        var self = this;
-        this.inputs.forEach(function (input) {
-
-          if (!input.satisfied) {
-            var element = ELEMENT_MIX[input.element][self.element];
-            var d = (self.direction % 2 === 0) ? 3 : 1;
-            var dir = (input.direction + d) % 4;
-            cube.addStream(self.face, self.index, element, dir);
-            input.satisfied = true;
-          }
-        })
+        if (input) {
+          var element = ELEMENT_MIX[input.element][this.element];
+          var d = (input.direction / (this.direction % 2) % 2 === 0) ? 3 : 1;
+          var dir = (input.direction + d) % 4;
+          return cube.addStream(this.face, this.index, element, dir);
+        }
         break;
       case 2: // Collector
         break;
@@ -377,8 +373,7 @@ Body.prototype = {
     stream.cull(this.index);
     stream.output = this;
     stream.completed = true;
-    this.inputs.push(stream);
-    this.generateStreams();
+    this.generateStreams(stream);
     console.log('stream body collision');
   },
 };
@@ -419,7 +414,8 @@ Stream.prototype = {
 
   },
   collidesWith: function (stream, index) {
-    console.log('stream collision');
+    this.face.cells[index] = 'foo';
+    console.log('stream collision at: ' + index);
     console.log(this);
     console.log(stream);
     this.completed = true;
@@ -455,8 +451,10 @@ var levels = [
   {
     size: 9,
     bodies: [
-      [0, 0, 0, 40, 0],
+      [0, 2, 0, 40, 0],
+      //[0, 0, 3, 33, 3],
       [1, 0, 3, 31, 1],
+      //[1, 0, 2, 31, 1],
 
     ],
   },
@@ -474,6 +472,14 @@ raf.start(function (elapsed) {
 });
 // }
 // User Input {
+canvas.onmousedown = function (e) {
+  var column = Math.floor(e.offsetX / _cube.dL);
+  var row = Math.floor(e.offsetY / _cube.dL);
+  var cell = _cube.currentFace.getCell(row, column);
+  console.log(cell || _cube.currentFace.getIndex(row, column, _cube.currentFace.orientation));
+
+
+};
 $up.onclick = function () {
   _cube.shiftDirection(0);
   resetUI();
