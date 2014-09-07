@@ -47,25 +47,6 @@
   bottom: 2px;
   right: 2px;
 }
-
-/*.cube {*/
-  /*position: absolute;*/
-  /*width: 100%;*/
-  /*height: 100%;*/
-  /*transform-style: preserve-3d;*/
-  /*transition: transform 1s;*/
-  /*[>backface-visibility: hidden;<]*/
-/*}*/
-/*#cube-inner {*/
-  /*transform: translateZ(-1600px) rotateX(-30deg) rotateY(40deg);*/
-/*}*/
-/*.cube div {*/
-  /*position: absolute;*/
-  /*width: 300px;*/
-  /*height: 300px;*/
-  /*display: block;*/
-  /*transform-style: inherit;*/
-/*}*/
 .cube figure img.active {
   border: 2px solid white;
 }
@@ -130,4 +111,42 @@
   text-align: center;
 }
 
+.game-canvas {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  padding: 25px 0;
+}
+.game-canvas canvas {
+}
 
+.game-canvas .game-button {
+  position: absolute;
+  text-align: center;
+  float: left;
+}
+.game-button.up {
+  top: 0;
+  left: 10%;
+  width: 80%;
+  height: 20px;
+}
+
+.game-button.down {
+  bottom: 0;
+  left: 10%;
+  width: 80%;
+  height: 20px;
+}
+.game-button.right {
+  top: 10%;
+  right: 0;
+  width: 20px;
+  height: 80%;
+}
+.game-button.left {
+  top: 10%;
+  left: 0;
+  width: 20px;
+  height: 80%;
+}
