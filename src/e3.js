@@ -116,7 +116,9 @@ Cube.prototype = {
     return this.faces[id];
   },
   addStream: function (face, index, element, direction) {
-    this.streams.push(new Stream(face, index, element, direction));
+    var stream = new Stream(face, index, element, direction);
+    this.streams.push(stream);
+    return stream;
   },
   initStreams: function () {
     this.bodies.forEach(function (body) {
@@ -149,17 +151,38 @@ Cube.prototype = {
         var cell = face.getCell(row, column, orientation);
         ctx.beginPath();
         if (cell) {
+          ctx.fillStyle = ELEMENT_FILL[cell.element] || 'yellow';
           if (cell instanceof Body) {
+            // Source Drawing
+            if (cell.type === 0) {
+              ctx.arc((column + 0.5) * dL + 1, (row + 0.5) * dL + 1, dL/3, 0, 6.28, 0);
+            }
+            // Reflector Drawing
+            else if (cell.type === 1) {
+              ctx.save();
+              ctx.beginPath();
+              ctx.translate((column + 0.35) * dL, (row - 0.15) * dL);
+              if ((cell.direction + orientation) % 2 === 0) {
+                ctx.rotate((-Math.PI / 4) * 1);
+                ctx.rect(0 - dL/2, 0 + dL/8, dL/4, dL);
+              } else {
+                ctx.rotate((Math.PI / 4) * 1);
+                ctx.rect(0 + dL/2, 0 - dL/8, dL/4, dL);
+              }
+              ctx.closePath();
+              ctx.restore();
+              ctx.fill();
 
-            ctx.fillStyle = ELEMENT_FILL[cell.element] || 'yellow';
-            ctx.arc((column + 0.5) * dL + 1, (row + 0.5) * dL + 1, dL/3, 0, 6.28, 0);
+            }
+
           } else if (cell instanceof Stream) {
-            ctx.fillStyle = ELEMENT_FILL[cell.element] || 'yellow';
-            if (cell.direction % 2 === 1) {
+            if ((cell.direction + orientation) % 2 === 1) {
               ctx.rect(column * dL, (row + 0.4) * dL, dL, dL * 0.2);
             } else {
               ctx.rect((column + 0.4) * dL, row * dL, dL * 0.2, dL);
             }
+          } else {
+            ctx.rect(dL * column, dL * row, dL - 1, dL - 1);
           }
         } else {
           ctx.fillStyle = '#111';
@@ -299,9 +322,13 @@ Face.prototype = {
         break;
     }
     var index = this.getIndex(row, column, 0)
-    this.cells[index] = 'foo';
-    console.log('transfer stream at ' + index);
-    return this.getIndex(row, column);
+    if (index < 0) {return;}
+    var stream = this.cube.addStream(this, index, element, (border + 2) % 4);
+
+    //stream.length = 3;
+    //this.cells[this.shiftIndex(index, (border + 2) % 4)] = {element: element};
+    console.log('transfer stream at ' + index + '; element: ' + element + '; border: ' + border);
+    return index;
 
   },
 };
@@ -330,12 +357,28 @@ Body.prototype = {
         //this.status = true;
         break;
       case 1: // Reflector
+        var self = this;
+        this.inputs.forEach(function (input) {
+
+          if (!input.satisfied) {
+            var element = ELEMENT_MIX[input.element][self.element];
+            var d = (self.direction % 2 === 0) ? 3 : 1;
+            var dir = (input.direction + d) % 4;
+            cube.addStream(self.face, self.index, element, dir);
+            input.satisfied = true;
+          }
+        })
         break;
       case 2: // Collector
         break;
     }
   },
   collidesWith: function (stream) {
+    stream.cull(this.index);
+    stream.output = this;
+    stream.completed = true;
+    this.inputs.push(stream);
+    this.generateStreams();
     console.log('stream body collision');
   },
 };
@@ -345,7 +388,7 @@ var Stream = function (face, index, element, direction) {
   this.face = face;
   this.element = element;
   this.direction = direction;
-  this.path = [index];
+  this.path = [];
   this.completed = false;
   this.current = this.face.shiftIndex(index, direction);
 };
@@ -354,14 +397,19 @@ Stream.prototype = {
   propagate: function () {
     if (this.completed) { return; }
     this.path.push(this.current);
+    if (this.length && this.path.length > this.length) { this.completed = true; return;}
     var cell = this.face.cells[this.current];
-    if (cell instanceof Stream) {
-      cell.collidesWith(this, this.current);
-    } else if (cell instanceof Body) {
-      cell.collidesWith(this);
+    if (cell) {
+      if (cell instanceof Stream) {
+        cell.collidesWith(this, this.current);
+      } else if (cell instanceof Body) {
+        cell.collidesWith(this);
+      }
+      this.completed = true;
     } else {
       this.face.cells[this.current] = this;
     }
+
     if (this.face.checkBorders(this)) {
       this.completed = true;
     } else {
@@ -372,15 +420,16 @@ Stream.prototype = {
   },
   collidesWith: function (stream, index) {
     console.log('stream collision');
+    console.log(this);
+    console.log(stream);
+    this.completed = true;
+    stream.completed = true;
+  },
+
+  cull: function (index) {
+
   },
 };
-// }
-// Edge Transfer {
-var Transfer = function (stream, border) {
-  this.face = _cube.getFace(stream.face.getNeighbors()[border]);
-  this.face.cells[4] = stream;
-
-}
 // }
 // Level Definitions {
 var levels = [
@@ -396,16 +445,25 @@ var levels = [
   {
     size: 5,
     bodies: [
+      [2, 0, 0, 12, 0],
       [0, 0, 1, 12, 0],
-      [0, 0, 2, 12, 0],
-      [0, 0, 3, 12, 0],
-      [0, 0, 4, 12, 0],
+      [0, 1, 2, 12, 0],
+      [0, 2, 3, 12, 0],
+      [0, 3, 4, 12, 0],
     ]
-  }
+  },
+  {
+    size: 9,
+    bodies: [
+      [0, 0, 0, 40, 0],
+      [1, 0, 3, 31, 1],
+
+    ],
+  },
 ];
 // }
 // Animation Loop {
-_cube = new Cube(levels[1]);
+_cube = new Cube(levels[2]);
 raf.start(function (elapsed) {
   if (_dirty) {
     _cube.initStreams();
